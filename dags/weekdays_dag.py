@@ -1,7 +1,12 @@
 from airflow import DAG
-from airflow.operators import PythonOperator
-from airflow.operators.python_operator import BranchPythonOperator
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.python import (  # noqa
+    BranchPythonOperator,
+    PythonOperator,
+    DummyOperator,
+    ShortCircuitOperator,
+)
+
+
 from datetime import datetime, timedelta
 # used to fatorize the code and avoid repetition
 tabDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
