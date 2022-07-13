@@ -1,10 +1,11 @@
 from airflow import DAG
-from airflow.operators.python import (  # noqa
+from airflow.operators.python import ( 
     BranchPythonOperator,
     PythonOperator,
-    DummyOperator,
-    ShortCircuitOperator,
+    ShortCircuitOperator
 )
+
+from airflow.operators.dummy import DummyOperator
 
 
 from datetime import datetime, timedelta
