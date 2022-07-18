@@ -19,18 +19,17 @@
 """Example DAG demonstrating the usage of the BranchPythonOperator."""
 
 import random
-
-import pendulum
+from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import BranchPythonOperator
 from airflow.utils.edgemodifier import Label
 from airflow.utils.trigger_rule import TriggerRule
 
 with DAG(
-    dag_id='example_branch_operator',
-    start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
+    dag_id='example_branch_python_operator_decorator',
+    start_date=datetime(2021, 1, 1),
     catchup=False,
     schedule_interval="@daily",
     tags=['example', 'example2'],
@@ -41,11 +40,13 @@ with DAG(
 
     options = ['branch_a', 'branch_b', 'branch_c', 'branch_d']
 
-    branching = BranchPythonOperator(
-        task_id='branching',
-        python_callable=lambda: random.choice(options),
-    )
-    run_this_first >> branching
+    @task.branch(task_id="branching")
+    def random_choice():
+        return random.choice(options)
+
+    random_choice_instance = random_choice()
+
+    run_this_first >> random_choice_instance
 
     join = EmptyOperator(
         task_id='join',
@@ -62,4 +63,4 @@ with DAG(
         )
 
         # Label is optional here, but it can help identify more complex branches
-        branching >> Label(option) >> t >> empty_follow >> join
+        random_choice_instance >> Label(option) >> t >> empty_follow >> join

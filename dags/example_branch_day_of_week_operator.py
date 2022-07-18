@@ -16,41 +16,33 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Helper function to generate a DAG and operators given some arguments."""
-
-# [START subdag]
+"""
+Example DAG demonstrating the usage of BranchDayOfWeekOperator.
+"""
 import pendulum
 
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.weekday import BranchDayOfWeekOperator
 
+with DAG(
+    dag_id="example_weekday_branch_operator",
+    start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
+    catchup=False,
+    tags=["example"],
+    schedule_interval="@daily",
+) as dag:
+    # [START howto_operator_day_of_week_branch]
+    empty_task_1 = EmptyOperator(task_id='branch_true')
+    empty_task_2 = EmptyOperator(task_id='branch_false')
 
-def subdag(parent_dag_name, child_dag_name, args):
-    """
-    Generate a DAG to be used as a subdag.
-
-    :param str parent_dag_name: Id of the parent DAG
-    :param str child_dag_name: Id of the child DAG
-    :param dict args: Default arguments to provide to the subdag
-    :return: DAG to use as a subdag
-    :rtype: airflow.models.DAG
-    """
-    dag_subdag = DAG(
-        dag_id=f'{parent_dag_name}.{child_dag_name}',
-        default_args=args,
-        start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
-        catchup=False,
-        schedule_interval="@daily",
+    branch = BranchDayOfWeekOperator(
+        task_id="make_choice",
+        follow_task_ids_if_true="branch_true",
+        follow_task_ids_if_false="branch_false",
+        week_day="Monday",
     )
 
-    for i in range(5):
-        EmptyOperator(
-            task_id=f'{child_dag_name}-task-{i + 1}',
-            default_args=args,
-            dag=dag_subdag,
-        )
-
-    return dag_subdag
-
-
-# [END subdag]
+    # Run empty_task_1 if branch executes on Monday
+    branch >> [empty_task_1, empty_task_2]
+    # [END howto_operator_day_of_week_branch]

@@ -16,50 +16,34 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Example DAG demonstrating the usage of the BranchPythonOperator."""
-
-import random
-
+"""
+Example DAG demonstrating a workflow with nested branching. The join tasks are created with
+``none_failed_min_one_success`` trigger rule such that they are skipped whenever their corresponding
+``BranchPythonOperator`` are skipped.
+"""
 import pendulum
 
-from airflow import DAG
+from airflow.models import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator
-from airflow.utils.edgemodifier import Label
 from airflow.utils.trigger_rule import TriggerRule
 
 with DAG(
-    dag_id='example_branch_operator',
+    dag_id="example_nested_branch_dag",
     start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
     catchup=False,
     schedule_interval="@daily",
-    tags=['example', 'example2'],
+    tags=["example"],
 ) as dag:
-    run_this_first = EmptyOperator(
-        task_id='run_this_first',
-    )
+    branch_1 = BranchPythonOperator(task_id="branch_1", python_callable=lambda: "true_1")
+    join_1 = EmptyOperator(task_id="join_1", trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS)
+    true_1 = EmptyOperator(task_id="true_1")
+    false_1 = EmptyOperator(task_id="false_1")
+    branch_2 = BranchPythonOperator(task_id="branch_2", python_callable=lambda: "true_2")
+    join_2 = EmptyOperator(task_id="join_2", trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS)
+    true_2 = EmptyOperator(task_id="true_2")
+    false_2 = EmptyOperator(task_id="false_2")
+    false_3 = EmptyOperator(task_id="false_3")
 
-    options = ['branch_a', 'branch_b', 'branch_c', 'branch_d']
-
-    branching = BranchPythonOperator(
-        task_id='branching',
-        python_callable=lambda: random.choice(options),
-    )
-    run_this_first >> branching
-
-    join = EmptyOperator(
-        task_id='join',
-        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
-    )
-
-    for option in options:
-        t = EmptyOperator(
-            task_id=option,
-        )
-
-        empty_follow = EmptyOperator(
-            task_id='follow_' + option,
-        )
-
-        # Label is optional here, but it can help identify more complex branches
-        branching >> Label(option) >> t >> empty_follow >> join
+    branch_1 >> true_1 >> join_1
+    branch_1 >> false_1 >> branch_2 >> [true_2, false_2] >> join_2 >> false_3 >> join_1

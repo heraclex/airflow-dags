@@ -15,33 +15,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Example LatestOnlyOperator and TriggerRule interactions
-"""
 
-# [START example]
-import datetime
-
+"""
+Example DAG demonstrating the usage of labels with different branches.
+"""
 import pendulum
 
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.latest_only import LatestOnlyOperator
-from airflow.utils.trigger_rule import TriggerRule
+from airflow.utils.edgemodifier import Label
 
 with DAG(
-    dag_id='latest_only_with_trigger',
-    schedule_interval=datetime.timedelta(hours=4),
+    "example_branch_labels",
+    schedule_interval="@daily",
     start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
     catchup=False,
-    tags=['example3'],
 ) as dag:
-    latest_only = LatestOnlyOperator(task_id='latest_only')
-    task1 = EmptyOperator(task_id='task1')
-    task2 = EmptyOperator(task_id='task2')
-    task3 = EmptyOperator(task_id='task3')
-    task4 = EmptyOperator(task_id='task4', trigger_rule=TriggerRule.ALL_DONE)
+    ingest = EmptyOperator(task_id="ingest")
+    analyse = EmptyOperator(task_id="analyze")
+    check = EmptyOperator(task_id="check_integrity")
+    describe = EmptyOperator(task_id="describe_integrity")
+    error = EmptyOperator(task_id="email_error")
+    save = EmptyOperator(task_id="save")
+    report = EmptyOperator(task_id="report")
 
-    latest_only >> task1 >> [task3, task4]
-    task2 >> [task3, task4]
-# [END example]
+    ingest >> analyse >> check
+    check >> Label("No errors") >> save >> report
+    check >> Label("Errors found") >> describe >> error >> report
