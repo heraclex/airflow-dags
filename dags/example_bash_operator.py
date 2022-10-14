@@ -73,4 +73,8 @@ this_will_skip = BashOperator(
 this_will_skip >> run_this_last
 
 if __name__ == "__main__":
-    dag.cli()
+    # dag.cli()
+    from airflow.utils.state import State
+
+    dag.clear()
+    dag.run()
