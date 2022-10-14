@@ -48,5 +48,6 @@ dagbag.dags['test-dag-id'].task_dict['task-id'].execute({})
 ```
 4. Note: Run the command `airflow db init` to init sql-lite database  
 
-
+REF:
+# https://stackoverflow.com/questions/65059259/debugging-airflow-tasks-using-airflow-test-vs-using-debugexecutor
 
